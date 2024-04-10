@@ -118,77 +118,91 @@ local function BURDH_fake_script() -- TextButton.LocalScript
 	local script = Instance.new('LocalScript', TextButton)
 
 	local player = game.Players.LocalPlayer
-	local visitedParts = {} -- Ziyaret edilen CleanPart'ların listesi
-	local isEnabled = false -- Toggle durumu
-	
-	local function getCleanParts()
-		local cleanParts = {}
-		local cleanPartFolder = workspace:FindFirstChild("CleanPart")
-		if cleanPartFolder then
-			for _, child in ipairs(cleanPartFolder:GetChildren()) do
-				if child.Name:match("^CleanPart%d+$") then
-					table.insert(cleanParts, child)
-				end
-			end
-		end
-		return cleanParts
-	end
-	
-	local function teleportToCleanPart(cleanPart)
-		player.Character:SetPrimaryPartCFrame(CFrame.new(cleanPart.Position))
-		visitedParts[cleanPart] = true
-	end
-	
-	local function adjustProximityPrompts()
-		local cleanParts = workspace:FindFirstChild("CleanPart")
-		if cleanParts then
-			for _, cleanPart in ipairs(cleanParts:GetChildren()) do
-				local proximityPrompt = cleanPart:FindFirstChildOfClass("ProximityPrompt")
-				if proximityPrompt then
-					proximityPrompt.HoldDuration = 0
-					proximityPrompt.MaxActivationDistance = 19
-				end
-			end
-		end
-	end
-	
-	local function toggleEvents()
-		isEnabled = not isEnabled
-	end
-	
-	local function runTeleportation()
-		while isEnabled do
-			adjustProximityPrompts() -- ProximityPrompt ayarlarını güncelle
-			local cleanParts = getCleanParts()
-			local teleportTarget = nil
-			for _, part in ipairs(cleanParts) do
-				if not visitedParts[part] then
-					teleportTarget = part
-					break
-				end
-			end
-			if teleportTarget then
-				teleportToCleanPart(teleportTarget)
-			else
-				visitedParts = {} -- Eğer tüm CleanPart'lar ziyaret edilmişse, ziyaret edilen listesini sıfırla
-			end
-			wait(4.5) -- 1.5 saniye bekle
-		end
-	end
-	
-	player.CharacterAdded:Connect(function(character)
-		local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-		humanoidRootPart.Anchored = true -- Oyuncuyu başta anchorla
-	end)
-	
-	local toggleButton = script.Parent -- TextButton'u script'in parent'ı olarak alıyoruz
-	
-	toggleButton.MouseButton1Click:Connect(function()
-		toggleEvents()
-		if isEnabled then
-			runTeleportation()
-		end
-	end)
+local userInputService = game:GetService("UserInputService")
+local visitedParts = {} -- Ziyaret edilen CleanPart'ların listesi
+local isEnabled = false -- Toggle durumu
+
+local function getCleanParts()
+    local cleanParts = {}
+    local cleanPartFolder = workspace:FindFirstChild("CleanPart")
+    if cleanPartFolder then
+        for _, child in ipairs(cleanPartFolder:GetChildren()) do
+            if child.Name:match("^CleanPart%d+$") then
+                table.insert(cleanParts, child)
+            end
+        end
+    end
+    return cleanParts
+end
+
+local function teleportToCleanPart(cleanPart)
+    player.Character:SetPrimaryPartCFrame(CFrame.new(cleanPart.Position))
+    visitedParts[cleanPart] = true
+end
+
+local function adjustProximityPrompts()
+    local cleanParts = workspace:FindFirstChild("CleanPart")
+    if cleanParts then
+        for _, cleanPart in ipairs(cleanParts:GetChildren()) do
+            local proximityPrompt = cleanPart:FindFirstChildOfClass("ProximityPrompt")
+            if proximityPrompt then
+                proximityPrompt.HoldDuration = 0
+                proximityPrompt.MaxActivationDistance = 19
+            end
+        end
+    end
+end
+
+local function toggleEvents()
+    isEnabled = not isEnabled
+end
+
+local function runTeleportation()
+    while isEnabled do
+        adjustProximityPrompts() -- ProximityPrompt ayarlarını güncelle
+        local cleanParts = getCleanParts()
+        local teleportTarget = nil
+        for _, part in ipairs(cleanParts) do
+            if not visitedParts[part] then
+                teleportTarget = part
+                break
+            end
+        end
+        if teleportTarget then
+            teleportToCleanPart(teleportTarget)
+        else
+            visitedParts = {} -- Eğer tüm CleanPart'lar ziyaret edilmişse, ziyaret edilen listesini sıfırla
+        end
+        wait(4.5) -- 1.5 saniye bekle
+    end
+end
+
+local function spamEKey()
+    while isEnabled do
+        userInputService.InputBegan:Wait() -- Klavye girişini bekleyin
+        if userInputService:IsKeyDown(Enum.KeyCode.E) then
+            -- E tuşuna basıldığında
+            -- Eğer toggle açıksa, E tuşuna basmaya devam edin
+            runTeleportation()
+        end
+    end
+end
+
+player.CharacterAdded:Connect(function(character)
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    humanoidRootPart.Anchored = true -- Oyuncuyu başta anchorla
+end)
+
+local toggleButton = script.Parent -- TextButton'u script'in parent'ı olarak alıyoruz
+
+toggleButton.MouseButton1Click:Connect(function()
+    toggleEvents()
+    if isEnabled then
+        runTeleportation()
+        spawn(spamEKey) -- E tuşuna spam yapma işlevselliğini başlatın
+    end
+end)
+
 	
 end
 coroutine.wrap(BURDH_fake_script)()
